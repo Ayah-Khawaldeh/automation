@@ -139,177 +139,182 @@ def main():
         EC.presence_of_element_located((By.TAG_NAME,"textarea"))
     )
 
-    with open("headlines.txt", "r") as file:
-        line = file.readline()
-    driver.execute_script(f"arguments[0].value = '{line}';", textarea)
-
-    pickers = WebDriverWait(driver,10).until(
-        EC.presence_of_all_elements_located((By.CSS_SELECTOR,'divelem.-selectbox'))
-    )
+    headlines = open('headlines.txt',mode='r',encoding='utf-8')
 
 
-    driver.execute_script("arguments[0].click",pickers[0])
-    arabic_choice = pickers[0].find_element(By.XPATH,'//divelem[@data-widget-value="ar"]')
-    print(arabic_choice)
-    driver.execute_script("arguments[0].click",arabic_choice)
+    def makeTitles(headline):
+        driver.execute_script(f"arguments[0].value = '{headline}';", textarea)
 
-    suggestion = pickers[1].find_element(By.XPATH,'//divelem[@data-widget-value="3"]')
-    print(suggestion)
-    driver.execute_script("arguments[0].click", suggestion)
+        pickers = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'divelem.-selectbox'))
+        )
 
-    # Find the custom element using its attribute values
-    button = WebDriverWait(driver,10).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR,"generate-button.hoverable.activable"))
-    )
+        driver.execute_script("arguments[0].click", pickers[0])
+        arabic_choice = pickers[0].find_element(By.XPATH, '//divelem[@data-widget-value="ar"]')
+        print(arabic_choice)
+        driver.execute_script("arguments[0].click", arabic_choice)
 
-    # Execute JavaScript to click on the custom element
-    driver.execute_script("arguments[0].click();", button)
+        suggestion = pickers[1].find_element(By.XPATH, '//divelem[@data-widget-value="3"]')
+        print(suggestion)
+        driver.execute_script("arguments[0].click", suggestion)
+
+        # Find the custom element using its attribute values
+        button = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "generate-button.hoverable.activable"))
+        )
+
+        # Execute JavaScript to click on the custom element
+        driver.execute_script("arguments[0].click();", button)
+
+        # Switch back to the main window
+        driver.switch_to.window(driver.window_handles[0])
+
+        # # Close the popup window
+        # driver.close()
+
+        wait = WebDriverWait(driver, 90)
+        wait.until(EC.url_contains('/activities/'))
+
+        print('url changed to done genration')
+
+        elements = driver.find_element(By.CSS_SELECTOR, 'div.fr-element.fr-view')
+        paragraphs = elements.find_elements(By.TAG_NAME, 'p')
+        # Remove numbers and dots, and split the text into lines
+        titles = []
+        for paragraph in paragraphs:
+            lines = [line.strip().strip("1234567890.-[] ") for line in paragraph.text.splitlines() if line.strip()]
+            titles.extend(lines)
+        # Print each line and store them in an array
+        with open('titles.txt', mode='a', encoding='utf-8') as file:
+            for title in titles:
+                file.write(f"{title}\n")
+
+        def make_article(headline):
+            driver.switch_to.window(main_window_handle)
+            driver.get('https://katteb.com/ar/dashboard/generate-full-article/')
+            form = driver.find_elements(By.TAG_NAME, 'multistep-form-body-field')
+
+            title = form[0].click()
+            form[0].find_element(By.NAME, 'topic_title').send_keys(headline)
+
+            title = form[1].click()
+            arabic_option = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable(
+                    (By.CSS_SELECTOR, 'multistep-form-body-field-fill-selectbox-item[data-value="ar"]')))
+            arabic_option.click()
+
+            title = form[2].click()
+            search = driver.find_elements(By.CSS_SELECTOR, 'input.-multistep-selectbox-search')[-1]
+            driver.execute_script("arguments[0].value = 'Jordan';", search)
+            search.send_keys(Keys.ENTER)
+            jordan_aud = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, 'multistep-form-body-field-fill-selectbox-item[data-value="JO"'))
+            )
+            jordan_aud.click()
+
+            title = form[3].click()
+            numbers_of_lines = driver.find_element(By.ID, 'topic_numberofwords')
+            driver.execute_script("arguments[0].value = 1200", numbers_of_lines)
+
+            next_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.TAG_NAME, "multistep-form-next"))
+            )
+
+            next_button.click()
+
+            write_button = WebDriverWait(driver, 40).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'div.-start-generating-button.hoverable.activable'))
+            )
+
+            write_button.click()
+
+            show_article = WebDriverWait(driver, 600).until(
+                EC.presence_of_element_located((By.LINK_TEXT, 'عرض المقال'))
+            )
 
 
-    # Switch back to the main window
-    driver.switch_to.window(driver.window_handles[0])
+            show_article.click()
 
-    # # Close the popup window
-    # driver.close()
+            articles_holder = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR,
+                                                'div.fr-element.fr-view'))
+            )  # Replace 'your_div_id' with the actual ID of the div element
 
-    wait = WebDriverWait(driver, 90)
-    wait.until(EC.url_contains('/activities/'))
+            ActionChains(driver).click(articles_holder).key_down(Keys.CONTROL).send_keys('a').send_keys('c').key_up(
+                Keys.CONTROL).perform()
 
-    print('url changed to done genration')
 
-    elements = driver.find_element(By.CSS_SELECTOR,'div.fr-element.fr-view')
-    paragraphs = elements.find_elements(By.TAG_NAME,'p')
-    # Remove numbers and dots, and split the text into lines
-    titles = []
-    for paragraph in paragraphs:
-        lines = [line.strip().strip("1234567890.-[] ") for line in paragraph.text.splitlines() if line.strip()]
-        titles.extend(lines)
-    # Print each line and store them in an array
-    with open('titles.txt',mode='a',encoding='utf-8') as file:
+            # Copy the selected text to clipboard
+            driver.execute_script('document.execCommand("copy");')
+
+            driver.switch_to.window('new_window')
+
+            driver.get('https://kalmeeh.com/wp-admin/post-new.php')
+
+            WebDriverWait(driver, 15).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'h1[aria-label="إضافة عنوان"]'))
+            )
+
+            headline_x = driver.find_element(By.CSS_SELECTOR, 'h1[aria-label="إضافة عنوان"]')
+
+            driver.execute_script('arguments[0].textContent = arguments[1];', headline_x, headline)
+
+            medical_checkbox = WebDriverWait(driver, 15).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'label[for="inspector-checkbox-control-6"]'))
+            )
+            health_checkbox = WebDriverWait(driver, 15).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'label[for="inspector-checkbox-control-5"]'))
+            )
+
+            medical_checkbox.click()
+            health_checkbox.click()
+
+            add_component = driver.find_element(By.CSS_SELECTOR,
+                                                'button.components-button.block-editor-inserter__toggle.has-icon')
+            add_component.click()
+
+            search = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'input.components-search-control__input'))
+            )
+
+            search.send_keys('Table')
+
+            driver.find_element(By.CSS_SELECTOR,
+                                'button.components-button.block-editor-block-types-list__item.editor-block-list-item-rank-math-toc-block').click()
+            headline_x.click()
+            add_component = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR,
+                                                'button.components-button.block-editor-inserter__toggle.has-icon'))
+            )
+
+            add_component.click()
+            search = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'input.components-search-control__input'))
+            )
+
+            search.send_keys('عنوان')
+
+            driver.find_element(By.CSS_SELECTOR,
+                                'button.components-button.block-editor-block-types-list__item.editor-block-list-item-heading').click()
+
+            head = driver.find_element(By.CSS_SELECTOR,
+                                       'h2.block-editor-rich-text__editable.block-editor-block-list__block.wp-block.is-selected.wp-block-heading.rich-text')
+
+            ActionChains(driver).click(head).key_down(Keys.CONTROL).send_keys('V').key_up(
+                Keys.CONTROL).perform()
+
+            draft_button = driver.find_element(By.CSS_SELECTOR, 'button.components-button.is-tertiary')
+            draft_button.click()
+
         for title in titles:
-            file.write(f"{title}\n")
+            make_article(title)
 
 
-    def make_article(headline):
-        driver.switch_to.window(main_window_handle)
-        driver.get('https://katteb.com/ar/dashboard/generate-full-article/')
-        form = driver.find_elements(By.TAG_NAME, 'multistep-form-body-field')
 
-        title = form[0].click()
-        form[0].find_element(By.NAME, 'topic_title').send_keys(headline)
-
-        title = form[1].click()
-        arabic_option = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, 'multistep-form-body-field-fill-selectbox-item[data-value="ar"]')))
-        arabic_option.click()
-
-        title = form[2].click()
-        search = driver.find_elements(By.CSS_SELECTOR, 'input.-multistep-selectbox-search')[-1]
-        driver.execute_script("arguments[0].value = 'Jordan';", search)
-        search.send_keys(Keys.ENTER)
-        jordan_aud = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located(
-                (By.CSS_SELECTOR, 'multistep-form-body-field-fill-selectbox-item[data-value="JO"'))
-        )
-        jordan_aud.click()
-
-        title = form[3].click()
-        numbers_of_lines = driver.find_element(By.ID, 'topic_numberofwords')
-        driver.execute_script("arguments[0].value = 1200", numbers_of_lines)
-
-        next_button = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.TAG_NAME, "multistep-form-next"))
-        )
-
-        next_button.click()
-
-        write_button = WebDriverWait(driver, 40).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'div.-start-generating-button.hoverable.activable'))
-        )
-
-        write_button.click()
-
-        show_article = WebDriverWait(driver, 600).until(
-            EC.presence_of_element_located((By.LINK_TEXT, 'عرض المقال'))
-        )
-
-        show_article.click()
-
-        articles_holder = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR,
-                                            'div.fr-element.fr-view'))
-        )  # Replace 'your_div_id' with the actual ID of the div element
-
-        ActionChains(driver).click(articles_holder).key_down(Keys.CONTROL).send_keys('a').send_keys('c').key_up(
-            Keys.CONTROL).perform()
-
-        article_title = driver.find_element(By.ID,'document-title');
-
-        # Copy the selected text to clipboard
-        driver.execute_script('document.execCommand("copy");')
-
-        driver.switch_to.window('new_window')
-
-        driver.get('https://kalmeeh.com/wp-admin/post-new.php')
-
-        WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'h1[aria-label="إضافة عنوان"]'))
-        )
-
-        headline = driver.find_element(By.CSS_SELECTOR, 'h1[aria-label="إضافة عنوان"]')
-
-        driver.execute_script('arguments[0].textContent = arguments[1];', headline, article_title)
-
-        medical_checkbox = WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'label[for="inspector-checkbox-control-6"]'))
-        )
-        health_checkbox = WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'label[for="inspector-checkbox-control-5"]'))
-        )
-
-        medical_checkbox.click()
-        health_checkbox.click()
-
-        add_component = driver.find_element(By.CSS_SELECTOR,
-                                            'button.components-button.block-editor-inserter__toggle.has-icon')
-        add_component.click()
-
-        search = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'input.components-search-control__input'))
-        )
-
-        search.send_keys('Table')
-
-        driver.find_element(By.CSS_SELECTOR,
-                            'button.components-button.block-editor-block-types-list__item.editor-block-list-item-rank-math-toc-block').click()
-        headline.click()
-        add_component = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR,
-                                            'button.components-button.block-editor-inserter__toggle.has-icon'))
-        )
-
-        add_component.click()
-        search = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'input.components-search-control__input'))
-        )
-
-        search.send_keys('عنوان')
-
-        driver.find_element(By.CSS_SELECTOR,
-                            'button.components-button.block-editor-block-types-list__item.editor-block-list-item-heading').click()
-
-        head = driver.find_element(By.CSS_SELECTOR,
-                                   'h2.block-editor-rich-text__editable.block-editor-block-list__block.wp-block.is-selected.wp-block-heading.rich-text')
-
-        ActionChains(driver).click(head).key_down(Keys.CONTROL).send_keys('V').key_up(
-            Keys.CONTROL).perform()
-
-        draft_button = driver.find_element(By.CSS_SELECTOR, 'button.components-button.is-tertiary')
-        draft_button.click()
-
-    for title in titles:
-        make_article(title)
+    for headline in headlines:
+        headline = headline.replace('\n','')
+        makeTitles(headline)
 
 
 
