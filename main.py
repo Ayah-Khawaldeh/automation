@@ -190,13 +190,13 @@ def main():
             file.write(f"{title}\n")
 
 
-    def make_article():
+    def make_article(headline):
         driver.switch_to.window(main_window_handle)
         driver.get('https://katteb.com/ar/dashboard/generate-full-article/')
         form = driver.find_elements(By.TAG_NAME, 'multistep-form-body-field')
 
         title = form[0].click()
-        form[0].find_element(By.NAME, 'topic_title').send_keys('this is test keys 0')
+        form[0].find_element(By.NAME, 'topic_title').send_keys(headline)
 
         title = form[1].click()
         arabic_option = WebDriverWait(driver, 10).until(
@@ -244,6 +244,8 @@ def main():
         ActionChains(driver).click(articles_holder).key_down(Keys.CONTROL).send_keys('a').send_keys('c').key_up(
             Keys.CONTROL).perform()
 
+        article_title = driver.find_element(By.ID,'document-title');
+
         # Copy the selected text to clipboard
         driver.execute_script('document.execCommand("copy");')
 
@@ -257,7 +259,7 @@ def main():
 
         headline = driver.find_element(By.CSS_SELECTOR, 'h1[aria-label="إضافة عنوان"]')
 
-        driver.execute_script('arguments[0].textContent = arguments[1];', headline, "مرحبا بك في مدونتنا")
+        driver.execute_script('arguments[0].textContent = arguments[1];', headline, article_title)
 
         medical_checkbox = WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, 'label[for="inspector-checkbox-control-6"]'))
@@ -306,8 +308,8 @@ def main():
         draft_button = driver.find_element(By.CSS_SELECTOR, 'button.components-button.is-tertiary')
         draft_button.click()
 
-    for i in range(30):
-        make_article()
+    for title in titles:
+        make_article(title)
 
 
 
