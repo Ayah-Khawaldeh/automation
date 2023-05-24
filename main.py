@@ -253,6 +253,9 @@ def main():
                                                 'div.fr-element.fr-view'))
             )  # Replace 'your_div_id' with the actual ID of the div element
 
+            html_test = articles_holder.get_attribute('innerHTML')
+            print(html_test)
+
             ActionChains(driver).click(articles_holder).key_down(Keys.CONTROL).send_keys('a').send_keys('c').key_up(
                 Keys.CONTROL).perform()
 
@@ -311,12 +314,9 @@ def main():
                     EC.presence_of_element_located((By.CSS_SELECTOR,'p.block-editor-rich-text__editable.block-editor-block-list__block.wp-block.is-selected.wp-block-paragraph.rich-text'))
                 )
                 driver.implicitly_wait(3)
-                ActionChains(driver).click(appender).key_down(Keys.CONTROL).send_keys('V').key_up(
-                    Keys.CONTROL).perform()
-                # driver.execute_script('document.execCommand("paste");')
-                # code_to_paste = clipboard.paste()
-                # appender.send_keys(code_to_paste)
-            driver.implicitly_wait(15)
+                driver.execute_script(f"arguments[0].innerHTML = '{html_test}';", appender)
+
+                driver.implicitly_wait(10)
             # add_component = WebDriverWait(driver, 10).until(
             #     EC.presence_of_element_located((By.CSS_SELECTOR,
             #                                     'button.components-button.block-editor-inserter__toggle.has-icon'))
