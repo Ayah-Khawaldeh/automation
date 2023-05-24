@@ -1,5 +1,6 @@
 import csv
 
+import clipboard as clipboard
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver import Keys
@@ -8,11 +9,17 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
+import json
 
+
+
+from selenium.common.exceptions import StaleElementReferenceException
 
 
 
 def main():
+    json_file = open('configs.json')
+    configs = json.load(json_file)
     # Specify the path to the ChromeDriver executable
     chrome_driver_path = 'Users\Ayahk\Downloads\chromedriver_win32\chromedriver.exe'
 
@@ -99,58 +106,63 @@ def main():
     print('url changed to dashboard')
 
 
+    keywords = open('keywords.txt',mode='r',encoding='utf-8')
 
 
-    try:
-        iframe_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, 'LOU_PLAYER_MAINFRAME'))
+    def makeTitles(keyword):
+        driver.switch_to.window(main_window_handle)
+        if driver.current_url.count != 'https://katteb.com/ar/dashboard/':
+            driver.get('https://katteb.com/ar/dashboard/')
+
+        WebDriverWait(driver,10).until(
+            EC.url_matches('https://katteb.com/ar/dashboard/')
         )
-        driver.switch_to.frame(iframe_element)
-        close_start_dialog = WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "div.sc-gPpHY.ilrxnI"))
+
+
+        try:
+            iframe_element = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, 'LOU_PLAYER_MAINFRAME'))
+            )
+            driver.switch_to.frame(iframe_element)
+            close_start_dialog = WebDriverWait(driver, 15).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "div.sc-gPpHY.ilrxnI"))
+            )
+
+            print('yes element wsa found')
+            close_start_dialog.click()
+
+        except:
+            pass
+
+        driver.switch_to.window(driver.current_window_handle)
+
+        links = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.XPATH, '//div[@class="owl-item active"]//a[@href]'))
         )
 
-        print('yes element wsa found')
-        close_start_dialog.click()
+        for link in links:
+            match_word = "عناوين جذابة"
+            if link.get_attribute('textContent') == match_word or link.get_attribute('textContent') == 'Headlines':
+                driver.execute_script("arguments[0].click();", link)
 
-    except:
-        pass
+        wait = WebDriverWait(driver, 20)
+        popup = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "-instant-form-popup")))
 
-    driver.switch_to.window(driver.current_window_handle)
+        # driver.switch_to.window(driver.window_handles[-1])
 
+        # Find the textarea element inside the popup
+        textarea = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.TAG_NAME, "textarea"))
+        )
 
-    links = WebDriverWait(driver,10).until(
-        EC.presence_of_all_elements_located((By.XPATH,'//div[@class="owl-item active"]//a[@href]'))
-    )
-
-    for link in links:
-        match_word = "عناوين جذابة"
-        if link.get_attribute('textContent') == match_word or link.get_attribute('textContent') == 'Headlines':
-            driver.execute_script("arguments[0].click();", link)
-
-
-    wait = WebDriverWait(driver, 10)
-    popup = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "-instant-form-popup")))
-
-    # driver.switch_to.window(driver.window_handles[-1])
-
-    # Find the textarea element inside the popup
-    textarea = WebDriverWait(driver,20).until(
-        EC.presence_of_element_located((By.TAG_NAME,"textarea"))
-    )
-
-    headlines = open('headlines.txt',mode='r',encoding='utf-8')
-
-
-    def makeTitles(headline):
-        driver.execute_script(f"arguments[0].value = '{headline}';", textarea)
+        driver.execute_script(f"arguments[0].value = '{keyword}';", textarea)
 
         pickers = WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'divelem.-selectbox'))
         )
 
         driver.execute_script("arguments[0].click", pickers[0])
-        arabic_choice = pickers[0].find_element(By.XPATH, '//divelem[@data-widget-value="ar"]')
+        arabic_choice = pickers[0].find_element(By.XPATH, f'//divelem[@data-widget-value="{configs["language_code"]}"]')
         print(arabic_choice)
         driver.execute_script("arguments[0].click", arabic_choice)
 
@@ -180,14 +192,14 @@ def main():
         elements = driver.find_element(By.CSS_SELECTOR, 'div.fr-element.fr-view')
         paragraphs = elements.find_elements(By.TAG_NAME, 'p')
         # Remove numbers and dots, and split the text into lines
-        titles = []
+        headlines = []
         for paragraph in paragraphs:
             lines = [line.strip().strip("1234567890.-[] ") for line in paragraph.text.splitlines() if line.strip()]
-            titles.extend(lines)
+            headlines.extend(lines)
         # Print each line and store them in an array
-        with open('titles.txt', mode='a', encoding='utf-8') as file:
-            for title in titles:
-                file.write(f"{title}\n")
+        with open('headlines.txt', mode='a', encoding='utf-8') as file:
+            for headline in headlines:
+                file.write(f"{headline}\n")
 
         def make_article(headline):
             driver.switch_to.window(main_window_handle)
@@ -200,7 +212,7 @@ def main():
             title = form[1].click()
             arabic_option = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable(
-                    (By.CSS_SELECTOR, 'multistep-form-body-field-fill-selectbox-item[data-value="ar"]')))
+                    (By.CSS_SELECTOR, f'multistep-form-body-field-fill-selectbox-item[data-value="{configs["language_code"]}"]')))
             arabic_option.click()
 
             title = form[2].click()
@@ -209,13 +221,13 @@ def main():
             search.send_keys(Keys.ENTER)
             jordan_aud = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
-                    (By.CSS_SELECTOR, 'multistep-form-body-field-fill-selectbox-item[data-value="JO"'))
+                    (By.CSS_SELECTOR, f'multistep-form-body-field-fill-selectbox-item[data-value="{configs["audience_country_code"]}"'))
             )
             jordan_aud.click()
 
             title = form[3].click()
             numbers_of_lines = driver.find_element(By.ID, 'topic_numberofwords')
-            driver.execute_script("arguments[0].value = 1200", numbers_of_lines)
+            driver.execute_script(f"arguments[0].value = {configs['length_of_article']}", numbers_of_lines)
 
             next_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.TAG_NAME, "multistep-form-next"))
@@ -283,38 +295,58 @@ def main():
             driver.find_element(By.CSS_SELECTOR,
                                 'button.components-button.block-editor-block-types-list__item.editor-block-list-item-rank-math-toc-block').click()
             headline_x.click()
-            add_component = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR,
-                                                'button.components-button.block-editor-inserter__toggle.has-icon'))
-            )
 
-            add_component.click()
-            search = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, 'input.components-search-control__input'))
-            )
+            try:
+                appender = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, 'div.block-list-appender.wp-block'))
+                )
 
-            search.send_keys('عنوان')
+                appender.click()
 
-            driver.find_element(By.CSS_SELECTOR,
-                                'button.components-button.block-editor-block-types-list__item.editor-block-list-item-heading').click()
+                driver.implicitly_wait(3)
+                code_to_paste = clipboard.paste()
+                appender.send_keys(code_to_paste)
+            except StaleElementReferenceException:
+                appender = WebDriverWait(driver,10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR,'p.block-editor-rich-text__editable.block-editor-block-list__block.wp-block.is-selected.wp-block-paragraph.rich-text'))
+                )
+                driver.implicitly_wait(3)
+                ActionChains(driver).click(appender).key_down(Keys.CONTROL).send_keys('V').key_up(
+                    Keys.CONTROL).perform()
+                # driver.execute_script('document.execCommand("paste");')
+                # code_to_paste = clipboard.paste()
+                # appender.send_keys(code_to_paste)
+            driver.implicitly_wait(15)
+            # add_component = WebDriverWait(driver, 10).until(
+            #     EC.presence_of_element_located((By.CSS_SELECTOR,
+            #                                     'button.components-button.block-editor-inserter__toggle.has-icon'))
+            # )
 
-            head = driver.find_element(By.CSS_SELECTOR,
-                                       'h2.block-editor-rich-text__editable.block-editor-block-list__block.wp-block.is-selected.wp-block-heading.rich-text')
+            # add_component.click()
+            # search = WebDriverWait(driver, 10).until(
+            #     EC.presence_of_element_located((By.CSS_SELECTOR, 'input.components-search-control__input'))
+            # )
 
-            ActionChains(driver).click(head).key_down(Keys.CONTROL).send_keys('V').key_up(
-                Keys.CONTROL).perform()
+            # search.send_keys('عنوان')
+
+            # driver.find_element(By.CSS_SELECTOR,
+            #                     'button.components-button.block-editor-block-types-list__item.editor-block-list-item-heading').click()
+
+            # head = driver.find_element(By.CSS_SELECTOR,'h2.block-editor-rich-text__editable.block-editor-block-list__block.wp-block.is-selected.wp-block-heading.rich-text')
+
+
 
             draft_button = driver.find_element(By.CSS_SELECTOR, 'button.components-button.is-tertiary')
             draft_button.click()
 
-        for title in titles:
-            make_article(title)
+        for headline in headlines:
+            make_article(headline)
 
 
 
-    for headline in headlines:
-        headline = headline.replace('\n','')
-        makeTitles(headline)
+    for keyword in keywords:
+        keyword = keyword.replace('\n','')
+        makeTitles(keyword)
 
 
 
