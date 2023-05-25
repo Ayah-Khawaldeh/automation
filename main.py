@@ -1,7 +1,3 @@
-import csv
-
-import clipboard as clipboard
-from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver import Keys
 from selenium.webdriver.chrome.options import Options
@@ -34,9 +30,9 @@ def main():
     driver.maximize_window()
 
     email_element = driver.find_element(By.ID, 'username')
-    email_element.send_keys('abdullah@swiftandsmart.com')
+    email_element.send_keys(configs['katteb_email'])
     password_element = driver.find_element(By.ID, 'password')
-    password_element.send_keys('kalmeeh2023kalmeeh')
+    password_element.send_keys(configs['katteb_password'])
 
     # Find and click the login button
     login_button = driver.find_element(By.CSS_SELECTOR, 'button.validation-submit-btn')
@@ -45,8 +41,8 @@ def main():
     wait = WebDriverWait(driver, 15)
     wait.until(EC.url_contains('/dashboard/'))
 
-    kaleema_admin_email = 'admin@kalmeeh.com'
-    kaleema_admin_password = 'kalmeeh2023kalmeeh*'
+    kaleema_admin_email = configs['admin_kaleema_email']
+    kaleema_admin_password = configs['admin_kaleema_password']
     main_window_handle = driver.current_window_handle
 
     driver.execute_script("window.open('about:blank', 'new_window')")
@@ -217,13 +213,15 @@ def main():
 
             title = form[2].click()
             search = driver.find_elements(By.CSS_SELECTOR, 'input.-multistep-selectbox-search')[-1]
-            driver.execute_script("arguments[0].value = 'Jordan';", search)
+            driver.execute_script(f"arguments[0].value = '{configs['audience_full_country_name']}';", search)
             search.send_keys(Keys.ENTER)
             jordan_aud = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
                     (By.CSS_SELECTOR, f'multistep-form-body-field-fill-selectbox-item[data-value="{configs["audience_country_code"]}"'))
             )
             jordan_aud.click()
+
+            driver.implicitly_wait(2)
 
             title = form[3].click()
             numbers_of_lines = driver.find_element(By.ID, 'topic_numberofwords')
@@ -235,7 +233,7 @@ def main():
 
             next_button.click()
 
-            write_button = WebDriverWait(driver, 40).until(
+            write_button = WebDriverWait(driver, 60).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'div.-start-generating-button.hoverable.activable'))
             )
 
@@ -254,7 +252,7 @@ def main():
             )  # Replace 'your_div_id' with the actual ID of the div element
 
             html_test = articles_holder.get_attribute('innerHTML')
-            print(html_test)
+            # print(html_test)
 
             ActionChains(driver).click(articles_holder).key_down(Keys.CONTROL).send_keys('a').send_keys('c').key_up(
                 Keys.CONTROL).perform()
@@ -307,12 +305,14 @@ def main():
                 appender.click()
 
                 driver.implicitly_wait(3)
-                code_to_paste = clipboard.paste()
-                appender.send_keys(code_to_paste)
+                driver.execute_script(f"arguments[0].innerHTML = '{html_test}';", appender)
+
             except StaleElementReferenceException:
-                appender = WebDriverWait(driver,10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR,'p.block-editor-rich-text__editable.block-editor-block-list__block.wp-block.is-selected.wp-block-paragraph.rich-text'))
+                appender = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR,
+                                                    'p.block-editor-rich-text__editable.block-editor-block-list__block.wp-block.is-selected.wp-block-paragraph.rich-text'))
                 )
+                appender.click()
                 driver.implicitly_wait(3)
                 driver.execute_script(f"arguments[0].innerHTML = '{html_test}';", appender)
 
