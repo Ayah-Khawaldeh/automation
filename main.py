@@ -6,10 +6,19 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 import json
+import os
+import sys
+from datetime import datetime
 
 
 
 from selenium.common.exceptions import StaleElementReferenceException
+application_path = os.path.dirname(sys.executable)
+
+now = datetime.now()
+date = now.strftime("%d%m%y")
+
+
 
 
 
@@ -21,6 +30,7 @@ def main():
 
     options = Options()
     options.add_experimental_option('detach', True)
+    # options.headless = True
 
     # Create an instance of Chrome WebDriver
     driver = webdriver.Chrome(executable_path=chrome_driver_path, options=options)
@@ -102,7 +112,8 @@ def main():
     print('url changed to dashboard')
 
 
-    keywords = open('keywords.txt',mode='r',encoding='utf-8')
+    keywords_path = os.path.join(application_path,'keywords.txt')
+    keywords = open(keywords_path,mode='r',encoding='utf-8')
 
 
     def makeTitles(keyword):
@@ -193,10 +204,15 @@ def main():
             lines = [line.strip().strip("1234567890.-[] ") for line in paragraph.text.splitlines() if line.strip()]
             headlines.extend(lines)
         # Print each line and store them in an array
-        with open('headlines.txt', mode='a', encoding='utf-8') as file:
-            for headline in headlines:
-                file.write(f"{headline}\n")
-
+        try:
+            with open(f'{os.path.join(application_path,"headlines/headlines-{date}.txt")}', mode='w', encoding='utf-8') as file:
+                for headline in headlines:
+                    file.write(f"{headline}\n")
+        except:
+            os.mkdir('headlines')
+            with open(f'{os.path.join(application_path,f"headlines/headlines-{date}.txt")}', mode='w', encoding='utf-8') as file:
+                for headline in headlines:
+                    file.write(f"{headline}\n")
         def make_article(headline):
             driver.switch_to.window(main_window_handle)
             driver.get('https://katteb.com/ar/dashboard/generate-full-article/')
@@ -253,6 +269,8 @@ def main():
 
             html_test = articles_holder.get_attribute('innerHTML')
             # print(html_test)
+
+            
 
             ActionChains(driver).click(articles_holder).key_down(Keys.CONTROL).send_keys('a').send_keys('c').key_up(
                 Keys.CONTROL).perform()
@@ -347,6 +365,8 @@ def main():
     for keyword in keywords:
         keyword = keyword.replace('\n','')
         makeTitles(keyword)
+
+    driver.quit()
 
 
 
