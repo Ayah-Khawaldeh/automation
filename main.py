@@ -317,27 +317,32 @@ def main():
             driver.find_element(By.CSS_SELECTOR,
                                 'button.components-button.block-editor-block-types-list__item.editor-block-list-item-rank-math-toc-block').click()
             headline_x.click()
+            
+            p_role_document = driver.find_element(By.CSS_SELECTOR,'p[role="document"]')
+            
+            ActionChains(driver).click(p_role_document).key_down(Keys.CONTROL).send_keys('v').key_up(
+                Keys.CONTROL).perform()
 
-            try:
-                appender = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, 'div.block-list-appender.wp-block'))
-                )
+            # try:
+            #     appender = WebDriverWait(driver, 10).until(
+            #         EC.presence_of_element_located((By.CSS_SELECTOR, 'div.block-list-appender.wp-block'))
+            #     )
 
-                appender.click()
+            #     appender.click()
 
-                driver.implicitly_wait(3)
-                driver.execute_script(f"arguments[0].innerHTML = '{html_test}';", appender)
+            #     driver.implicitly_wait(3)
+            #     driver.execute_script(f"arguments[0].innerHTML = '{html_test}';", appender)
 
-            except StaleElementReferenceException:
-                appender = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR,
-                                                    'p.block-editor-rich-text__editable.block-editor-block-list__block.wp-block.is-selected.wp-block-paragraph.rich-text'))
-                )
-                appender.click()
-                driver.implicitly_wait(3)
-                driver.execute_script(f"arguments[0].innerHTML = '{html_test}';", appender)/
+            # except StaleElementReferenceException:
+                # appender = WebDriverWait(driver, 10).until(
+                #     EC.presence_of_element_located((By.CSS_SELECTOR,
+                #                                     'p.block-editor-rich-text__editable.block-editor-block-list__block.wp-block.is-selected.wp-block-paragraph.rich-text'))
+                # )
+                # appender.click()
+                # driver.implicitly_wait(3)
+                # driver.execute_script(f"arguments[0].innerHTML = '{html_test}';", appender)/
 
-                driver.implicitly_wait(10)
+                # driver.implicitly_wait(10)
             # add_component = WebDriverWait(driver, 10).until(
             #     EC.presence_of_element_located((By.CSS_SELECTOR,
             #                                     'button.components-button.block-editor-inserter__toggle.has-icon'))
@@ -355,7 +360,7 @@ def main():
 
             # head = driver.find_element(By.CSS_SELECTOR,'h2.block-editor-rich-text__editable.block-editor-block-list__block.wp-block.is-selected.wp-block-heading.rich-text')
 
-
+            
 
             draft_button = driver.find_element(By.CSS_SELECTOR, 'button.components-button.is-tertiary')
             draft_button.click()
