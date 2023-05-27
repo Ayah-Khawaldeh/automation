@@ -203,9 +203,12 @@ def main():
         for paragraph in paragraphs:
             lines = [line.strip().strip("1234567890.-[] ") for line in paragraph.text.splitlines() if line.strip()]
             headlines.extend(lines)
+
+        print(headlines)
+        print(len(headlines))
         # Print each line and store them in an array
         try:
-            with open(f'{os.path.join(application_path,"headlines/headlines-{date}.txt")}', mode='w', encoding='utf-8') as file:
+            with open(f'{os.path.join(application_path,f"headlines/headlines-{date}.txt")}', mode='w', encoding='utf-8') as file:
                 for headline in headlines:
                     file.write(f"{headline}\n")
         except:
@@ -332,7 +335,7 @@ def main():
                 )
                 appender.click()
                 driver.implicitly_wait(3)
-                driver.execute_script(f"arguments[0].innerHTML = '{html_test}';", appender)
+                driver.execute_script(f"arguments[0].innerHTML = '{html_test}';", appender)/
 
                 driver.implicitly_wait(10)
             # add_component = WebDriverWait(driver, 10).until(
