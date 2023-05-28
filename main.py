@@ -10,23 +10,19 @@ import os
 import sys
 from datetime import datetime
 
-
-
 from selenium.common.exceptions import StaleElementReferenceException
+
 application_path = os.path.dirname(sys.executable)
 
 now = datetime.now()
 date = now.strftime("%d%m%y")
 
 
-
-
-
 def main():
     json_file = open('configs.json')
     configs = json.load(json_file)
     # Specify the path to the ChromeDriver executable
-    chrome_driver_path = 'Users\Ayahk\Downloads\chromedriver_win32\chromedriver.exe'
+    chrome_driver_path = os.path.join(application_path, 'chromedriver.exe')
 
     options = Options()
     options.add_experimental_option('detach', True)
@@ -108,23 +104,19 @@ def main():
 
     driver.switch_to.window(main_window_handle)
 
-
     print('url changed to dashboard')
 
-
-    keywords_path = os.path.join(application_path,'keywords.txt')
-    keywords = open(keywords_path,mode='r',encoding='utf-8')
-
+    keywords_path = os.path.join(application_path, 'keywords.txt')
+    keywords = open(keywords_path, mode='r', encoding='utf-8')
 
     def makeTitles(keyword):
         driver.switch_to.window(main_window_handle)
         if driver.current_url.count != 'https://katteb.com/ar/dashboard/':
             driver.get('https://katteb.com/ar/dashboard/')
 
-        WebDriverWait(driver,10).until(
+        WebDriverWait(driver, 10).until(
             EC.url_matches('https://katteb.com/ar/dashboard/')
         )
-
 
         try:
             iframe_element = WebDriverWait(driver, 10).until(
@@ -208,35 +200,40 @@ def main():
         print(len(headlines))
         # Print each line and store them in an array
         try:
-            with open(f'{os.path.join(application_path,f"headlines/headlines-{date}.txt")}', mode='w', encoding='utf-8') as file:
+            with open(f'{os.path.join(application_path, f"headlines/headlines-{date}.txt")}', mode='w',
+                      encoding='utf-8') as file:
                 for headline in headlines:
                     file.write(f"{headline}\n")
         except:
             os.mkdir('headlines')
-            with open(f'{os.path.join(application_path,f"headlines/headlines-{date}.txt")}', mode='w', encoding='utf-8') as file:
+            with open(f'{os.path.join(application_path, f"headlines/headlines-{date}.txt")}', mode='w',
+                      encoding='utf-8') as file:
                 for headline in headlines:
                     file.write(f"{headline}\n")
+
         def make_article(headline):
             driver.switch_to.window(main_window_handle)
             driver.get('https://katteb.com/ar/dashboard/generate-full-article/')
             form = driver.find_elements(By.TAG_NAME, 'multistep-form-body-field')
 
-            title = form[0].click()
+            form[0].click()
             form[0].find_element(By.NAME, 'topic_title').send_keys(headline)
 
-            title = form[1].click()
+            form[1].click()
             arabic_option = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable(
-                    (By.CSS_SELECTOR, f'multistep-form-body-field-fill-selectbox-item[data-value="{configs["language_code"]}"]')))
+                    (By.CSS_SELECTOR,
+                     f'multistep-form-body-field-fill-selectbox-item[data-value="{configs["language_code"]}"]')))
             arabic_option.click()
 
-            title = form[2].click()
+            form[2].click()
             search = driver.find_elements(By.CSS_SELECTOR, 'input.-multistep-selectbox-search')[-1]
             driver.execute_script(f"arguments[0].value = '{configs['audience_full_country_name']}';", search)
             search.send_keys(Keys.ENTER)
             jordan_aud = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
-                    (By.CSS_SELECTOR, f'multistep-form-body-field-fill-selectbox-item[data-value="{configs["audience_country_code"]}"'))
+                    (By.CSS_SELECTOR,
+                     f'multistep-form-body-field-fill-selectbox-item[data-value="{configs["audience_country_code"]}"'))
             )
             jordan_aud.click()
 
@@ -262,7 +259,6 @@ def main():
                 EC.presence_of_element_located((By.LINK_TEXT, 'عرض المقال'))
             )
 
-
             show_article.click()
 
             articles_holder = WebDriverWait(driver, 10).until(
@@ -273,11 +269,8 @@ def main():
             html_test = articles_holder.get_attribute('innerHTML')
             # print(html_test)
 
-            
-
             ActionChains(driver).click(articles_holder).key_down(Keys.CONTROL).send_keys('a').send_keys('c').key_up(
                 Keys.CONTROL).perform()
-
 
             # Copy the selected text to clipboard
             driver.execute_script('document.execCommand("copy");')
@@ -286,7 +279,7 @@ def main():
 
             driver.get('https://kalmeeh.com/wp-admin/post-new.php')
 
-            WebDriverWait(driver, 15).until(
+            WebDriverWait(driver, 40).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'h1[aria-label="إضافة عنوان"]'))
             )
 
@@ -318,44 +311,18 @@ def main():
                                 'button.components-button.block-editor-block-types-list__item.editor-block-list-item-rank-math-toc-block').click()
             headline_x.click()
 
-            try:
-                appender = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, 'div.block-list-appender.wp-block'))
-                )
+            p_document = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'p.block-editor-default-block-appender__content'))
+            )
 
-                appender.click()
+            p_document.click()
 
-                driver.implicitly_wait(3)
-                driver.execute_script(f"arguments[0].innerHTML = '{html_test}';", appender)
-
-            except StaleElementReferenceException:
-                appender = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR,
-                                                    'p.block-editor-rich-text__editable.block-editor-block-list__block.wp-block.is-selected.wp-block-paragraph.rich-text'))
-                )
-                appender.click()
-                driver.implicitly_wait(3)
-                driver.execute_script(f"arguments[0].innerHTML = '{html_test}';", appender)/
-
-                driver.implicitly_wait(10)
-            # add_component = WebDriverWait(driver, 10).until(
-            #     EC.presence_of_element_located((By.CSS_SELECTOR,
-            #                                     'button.components-button.block-editor-inserter__toggle.has-icon'))
-            # )
-
-            # add_component.click()
-            # search = WebDriverWait(driver, 10).until(
-            #     EC.presence_of_element_located((By.CSS_SELECTOR, 'input.components-search-control__input'))
-            # )
-
-            # search.send_keys('عنوان')
-
-            # driver.find_element(By.CSS_SELECTOR,
-            #                     'button.components-button.block-editor-block-types-list__item.editor-block-list-item-heading').click()
-
-            # head = driver.find_element(By.CSS_SELECTOR,'h2.block-editor-rich-text__editable.block-editor-block-list__block.wp-block.is-selected.wp-block-heading.rich-text')
-
-
+            p_role_document = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR,
+                                                'p.block-editor-rich-text__editable.block-editor-block-list__block.wp-block.is-selected.wp-block-paragraph.rich-text'))
+            )
+            ActionChains(driver).click(p_role_document).key_down(Keys.CONTROL).send_keys('v').key_up(
+                Keys.CONTROL).perform()
 
             draft_button = driver.find_element(By.CSS_SELECTOR, 'button.components-button.is-tertiary')
             draft_button.click()
@@ -363,14 +330,11 @@ def main():
         for headline in headlines:
             make_article(headline)
 
-
-
     for keyword in keywords:
-        keyword = keyword.replace('\n','')
+        keyword = keyword.replace('\n', '')
         makeTitles(keyword)
 
     driver.quit()
-
 
 
 if __name__ == '__main__':
