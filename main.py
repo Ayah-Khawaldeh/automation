@@ -13,7 +13,7 @@ from datetime import datetime
 application_path = os.path.dirname(sys.executable)
 
 now = datetime.now()
-date = now.strftime("%d%m%y%s")
+date = now.strftime("%d%m%y")
 
 
 def main():
@@ -206,7 +206,7 @@ def main():
         # # Close the popup window
         # driver.close()
 
-        wait = WebDriverWait(driver, 90)
+        wait = WebDriverWait(driver, 100)
         wait.until(EC.url_contains('/activities/'))
 
         print('url changed to done genration')
