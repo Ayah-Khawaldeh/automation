@@ -10,16 +10,15 @@ import os
 import sys
 from datetime import datetime
 
-from selenium.common.exceptions import StaleElementReferenceException
-
 application_path = os.path.dirname(sys.executable)
 
 now = datetime.now()
-date = now.strftime("%d%m%y")
+date = now.strftime("%d%m%y%s")
 
 
 def main():
-    json_file = open('configs.json')
+    configs_path = os.path.join(application_path,'configs.json')
+    json_file = open(configs_path)
     configs = json.load(json_file)
     # Specify the path to the ChromeDriver executable
     chrome_driver_path = os.path.join(application_path, 'chromedriver.exe')
@@ -104,10 +103,8 @@ def main():
 
     driver.switch_to.window(main_window_handle)
 
-    print('url changed to dashboard')
-
-    keywords_path = os.path.join(application_path, 'keywords.txt')
-    keywords = open(keywords_path, mode='r', encoding='utf-8')
+    keywords_path = os.path.join(application_path,'keywords.txt')
+    keywords = open(keywords_path, mode='r', encoding='utf-8', errors='ignore')
 
     def makeTitles(keyword):
         driver.switch_to.window(main_window_handle)
@@ -127,7 +124,6 @@ def main():
                 EC.presence_of_element_located((By.CSS_SELECTOR, "div.sc-gPpHY.ilrxnI"))
             )
 
-            print('yes element wsa found')
             close_start_dialog.click()
 
         except:
@@ -144,30 +140,57 @@ def main():
             if link.get_attribute('textContent') == match_word or link.get_attribute('textContent') == 'Headlines':
                 driver.execute_script("arguments[0].click();", link)
 
-        wait = WebDriverWait(driver, 20)
-        popup = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "-instant-form-popup")))
 
         # driver.switch_to.window(driver.window_handles[-1])
+        dropDown = WebDriverWait(driver,10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR,'div.-katteb-generator-drawer-templates-button.hoverable.activable'))
+        )
+
+        driver.execute_script("arguments[0].click();", dropDown)
+
+        dropDownItem = WebDriverWait(driver,10).until(
+            EC.presence_of_element_located((By.XPATH,'//a[@href="https://katteb.com/ar/dashboard/generate/headlines/"]'))
+        )
+
+        driver.execute_script("arguments[0].click();", dropDownItem)
+
+
+
 
         # Find the textarea element inside the popup
         textarea = WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.TAG_NAME, "textarea"))
+            EC.presence_of_element_located((By.ID, "-templatefield-headlines_selectedTab_h1"))
         )
 
         driver.execute_script(f"arguments[0].value = '{keyword}';", textarea)
+
+        # sgDropDown = WebDriverWait(driver, 10).until(
+        #     EC.presence_of_element_located(
+        #         (By.XPATH, ''))
+        # )
+        #
+        # lanDropDown = WebDriverWait(driver,10).until(
+        #     EC.presence_of_element_located((By.XPATH,'/html/body/div[1]/form/div/generate-phase-root-body-tab/divelem[1]/divelem[1]/divelem[1]/divelem[2]/divelem/divelem[1]'))
+        # )
+        #
+        # driver.execute_script("arguments[0].click();", sgDropDown)
 
         pickers = WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'divelem.-selectbox'))
         )
 
-        driver.execute_script("arguments[0].click", pickers[0])
-        arabic_choice = pickers[0].find_element(By.XPATH, f'//divelem[@data-widget-value="{configs["language_code"]}"]')
-        print(arabic_choice)
-        driver.execute_script("arguments[0].click", arabic_choice)
+        # driver.execute_script("arguments[0].click", pickers[1])
+        pickers[1].click()
+        arabic_choice = driver.find_element(By.XPATH, f'//divelem[@data-widget-value="{configs["language_code"]}"]')
+        arabic_choice.click()
 
-        suggestion = pickers[1].find_element(By.XPATH, '//divelem[@data-widget-value="3"]')
-        print(suggestion)
-        driver.execute_script("arguments[0].click", suggestion)
+        pickers[0].click()
+
+        suggestion =WebDriverWait(driver,10).until(
+            EC.element_to_be_clickable((By.XPATH, '//divelem[@data-widget-value="3"]'))
+        )
+        suggestion.click()
+        # driver.execute_script("arguments[0].click", suggestion)
 
         # Find the custom element using its attribute values
         button = WebDriverWait(driver, 10).until(
@@ -196,18 +219,15 @@ def main():
             lines = [line.strip().strip("1234567890.-[] ") for line in paragraph.text.splitlines() if line.strip()]
             headlines.extend(lines)
 
-        print(headlines)
-        print(len(headlines))
         # Print each line and store them in an array
+        headlines_file = os.path.join(application_path,f"headlines/headlines-{date}.txt")
         try:
-            with open(f'{os.path.join(application_path, f"headlines/headlines-{date}.txt")}', mode='w',
-                      encoding='utf-8') as file:
+            with open(headlines_file, mode='w', encoding='utf-8', errors='ignore') as file:
                 for headline in headlines:
                     file.write(f"{headline}\n")
         except:
             os.mkdir('headlines')
-            with open(f'{os.path.join(application_path, f"headlines/headlines-{date}.txt")}', mode='w',
-                      encoding='utf-8') as file:
+            with open(headlines_file, mode='w', encoding='utf-8', errors='ignore') as file:
                 for headline in headlines:
                     file.write(f"{headline}\n")
 
@@ -266,9 +286,6 @@ def main():
                                                 'div.fr-element.fr-view'))
             )  # Replace 'your_div_id' with the actual ID of the div element
 
-            html_test = articles_holder.get_attribute('innerHTML')
-            # print(html_test)
-
             ActionChains(driver).click(articles_holder).key_down(Keys.CONTROL).send_keys('a').send_keys('c').key_up(
                 Keys.CONTROL).perform()
 
@@ -279,7 +296,7 @@ def main():
 
             driver.get('https://kalmeeh.com/wp-admin/post-new.php')
 
-            WebDriverWait(driver, 40).until(
+            WebDriverWait(driver, 15).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'h1[aria-label="إضافة عنوان"]'))
             )
 
